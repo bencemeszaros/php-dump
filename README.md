@@ -31,8 +31,7 @@ MyClass {
     float: float = 3.14
     string: string = "foo"
     array: array = []
-    object: object = stdClass {
-    }
+    object: object = stdClass {}
     resource = resource
 
     __construct()
@@ -52,7 +51,7 @@ resource
 - always ends with a line break
 
 ## Upcoming features and fixes
-- empty objects still add a line break, it will be removed
+- empty objects still add a line break, it will be removed (fixed)
 - the length of strings and arrays aren't displayed, this is for clarity but might be added in the future
 
 ## Requirements
