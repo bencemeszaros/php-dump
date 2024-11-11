@@ -1,0 +1,10 @@
+2024-11-11
+- empty object is now on a single line, line break is removed
+- minor changes in comments
+
+2024-11-10
+- can handle resource now
+- array and object are both recursive now (can print properties storing array or object)
+
+2024-06-19
+- script created

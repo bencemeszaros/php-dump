@@ -2,19 +2,15 @@
 
 /* phpDump.php
 
-PHP Patch
-
-2024-06-19
-- script created
-
-*/
-
-/*
-PROBLEMS
-- cannot handle resource
-- object isn't recursive (doesn't print properties storing array or object)
+QUESTIONS
 - comma after array key-values?
 - comma after object property-values/methods?
+- should we display actual type of object property if isn't set?
+- do we need an empty line between object properties and methods?
+    - should we display object methods? (pretty helpful, but can be overwhelming)
+- should we recursively check ancestor classes, traits, interfaces, etc. for further properties, methods, constants?
+- how to get dynamic properties?
+    - it is discouraged but possible currently, but it will still be allowed for stdClass so we definitely need this
 
 TESTS
 - Scalar
@@ -58,20 +54,25 @@ function phpPrintValue($value, $indent) {
             if (
                 sizeof($value) === 0
             ) {
-                return "{}";
+                return "[]";
             }
-            $print = "{" . PHP_EOL;
+            $print = "[" . PHP_EOL;
             foreach ($value as $k => $v) {
                 $print .= $indent . "    " . $k . ": " . phpPrintValue($v, $indent . "    ") . "," . PHP_EOL;
             }
             $print = substr($print, 0, -2); //remove last comma and line break
-            $print .= PHP_EOL;
-            $print .= $indent . "}";
+            $print .= PHP_EOL; //re-add last line break
+            $print .= $indent . "]";
             return $print;
         case "object":
-            //if empty, print "classname {}" only (single line)
-            $print = get_class($value) . " {" . PHP_EOL; //object might be empty, add "{}" only
-            $print .= phpPrintObject($value, $indent . "    ");
+            $objectBody = phpPrintObject($value, $indent . "    ");
+            if (
+                $objectBody === null
+            ) {
+                return get_class($value) . " {}";
+            }
+            $print = get_class($value) . " {" . PHP_EOL;
+            $print .= $objectBody;
             $print .= $indent . "}";
             return $print;
         case "resource":
@@ -91,15 +92,14 @@ function phpPrintObject(
     - WARNING: when accessing the type/class of the property, if it is undefined $property->getType()->getName() should be used (fuck knows why)
     */
     
+    //get_parent_class($class); //should we traverse ancestors?
     $class = get_class($input);
-    $reflection = new ReflectionClass($class);
 
-    //check properties of parent traits, interfaces, etc.?
-    //get_parent_class($class); //recursive check for parent methods and properties (should be added to results?)
     //get_class_vars(get_class($input)); //class properties (includes: uninitialized)
     //get_object_vars($input); //instance properties (includes: dynamic, excludes: uninitialized)
+    $reflection = new ReflectionClass($class); //reflection properties (includes: uninitialized, excludes: dynamic?)
 
-    //Get properties (do we need type if wasn't specified?)
+    //Get properties
     $properties = [];
     foreach ($reflection->getProperties() as $property) {
 
@@ -142,10 +142,17 @@ function phpPrintObject(
                 ($method->isPublic() ? "public " : ""),
                 0,
                 -1
-            ); //remove last space
+            ); //remove trailing space
             $methods .= ")";
         }
         $methods .= PHP_EOL;
+    }
+
+    if (
+        sizeof($properties) === 0 &&
+        strlen($methods) === 0
+    ) {
+        return null;
     }
 
     //Print
@@ -167,7 +174,7 @@ function phpPrintObject(
         $print .= PHP_EOL;
     }
 
-    //Add line between properties and methods if both exist (do we need this?)
+    //Add line between properties and methods if both exist
     if (
         count($properties) > 0 &&
         $methods !== ""
