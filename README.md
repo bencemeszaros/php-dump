@@ -53,6 +53,7 @@ resource
 ## Upcoming features and fixes
 - empty objects still add a line break, it will be removed (fixed)
 - the length of strings and arrays aren't displayed, this is for clarity but might be added in the future
+- circular references might break this print (needs investigation)
 
 ## Requirements
 
@@ -133,17 +134,17 @@ var_export([["foo" => "bar"], []]);
 
 ```txt
 array (
-  0 => 
+  0 =>
   array (
     'foo' => 'bar',
   ),
-  1 => 
+  1 =>
   array (
   ),
 )
 ```
 
-Using it with objects is even more weird. I don't even know what this is supposed to be:
+Using it with objects is even weirder. I don't even know what this is supposed to be:
 
 ```php
 var_export(new MyClass("foo", 42));
@@ -154,4 +155,89 @@ var_export(new MyClass("foo", 42));
    'foo' => 'foo',
    'bar' => 42,
 ))
+```
+
+## What didn't work
+
+After dismissing all built-in print formats, the next idea was to use an existing syntax, preferably something that could be copy–pasted back into PHP, before inventing something new.
+
+### Printing PHP syntax
+
+One idea was to print PHP syntax right away. Whilst it sounds good for scalar values, PHP "arrays" are unnecessarily verbose with string keys:
+
+```php
+[
+    "foo" => true,
+    "bar" => 42,
+    "baz" => "hey"
+];
+```
+
+```txt
+[
+    foo: true,
+    bar: 42,
+    baz: "hey"
+]
+```
+
+Objects are even worse because this would essentially print class definitions not instances, which would lead to several problems:
+- PHP class definitions cannot be nested while instances can be,
+- Type declarations come before the property names, which is less readable and less intuitive, and
+- PHP class definitions are unnecessarily verbose, too:
+
+```php
+class MyClass {
+
+    public string $foo;
+
+    public function __construct(
+        public null $null = null,
+        public true $true = true,
+        public false $false = false,
+        public int $int = 42,
+        public float $float = 3.14,
+        public string $string = "foo",
+        public array $array = [],
+        public object $object = new stdClass,
+        public $resource = null
+    ) {
+        $this->resource = fopen(__FILE__, "r");
+    }
+
+    public function myFunction() {}
+}
+```
+
+```txt
+MyClass {
+    foo: string = uninitialized
+    null: null = null
+    true: true = true
+    false: false = false
+    int: int = 42
+    float: float = 3.14
+    string: string = "foo"
+    array: array = []
+    object: object = stdClass {}
+    resource = resource
+    __construct()
+    myFunction()
+}
+```
+
+And whilst copy-pasting sounds like a useful feature to have, it is actually pretty rare that it comes up in practice, if ever.
+
+### Printing JSON syntax
+
+Another idea was to utilize JSON, but that is even more chaotic:
+- JSON can only support six basic types (null, bool, number, string, array, object) and everything in PHP has to be mapped to one of them, which is already a huge mess (PHP "array" might map to a JSON array or a JSON object, etc.),
+- It cannot even map many things we need (various special values like INF, NAN or even resources, custom type declarations, uninitialized, private or protected members, invalid UTF-8, etc.),
+- It can present something entirely different (custom JsonSerializable implementation), and
+- It is verbose, too (quotes, escape sequences everywhere).
+
+But if you really want to format your output as JSON, you can already do so without a custom library:
+
+```php
+echo json_encode($data, JSON_PRETTY_PRINT);
 ```
