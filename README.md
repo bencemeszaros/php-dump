@@ -105,7 +105,7 @@ Array
 
 ### var_dump()
 
-`var_dump()` is the only multi-argument solution that works with both scalar and non-scalar values, but its format is absolutely hideous: it uses not just square brackets but also double quotes around keys in arrays/objects, it uses a weird, function call-like syntax for types (which is the same syntax for string and array lengths), it uses curly braces for arrays/objects now, and the worst of it all it even breaks between keys and their values. This format is practically unreadable.
+`var_dump()` is the only multi-argument solution that works with both scalar and non-scalar values, but its format is absolutely hideous: it uses not just square brackets but also double quotes around keys in arrays/objects, it uses a weird, function call-like syntax for types (which is the same syntax for string and array lengths), it uses curly braces for arrays/objects now, and worst of all it even breaks between keys and their values. This format is practically unreadable.
 
 ```php
 var_dump([["foo" => "bar"], []]);
